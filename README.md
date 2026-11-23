@@ -1,23 +1,18 @@
 # Numerical Magnitude Comparison Task
 
-A small PsychoPy experiment for studying numerical magnitude judgments. On each trial, participants view two numbers and indicate which number is larger.
+A compact PsychoPy experiment implementing a two-choice numerical magnitude judgment task. Each participant completes 40 trials: 20 randomly formed number pairs, each presented in both left–right configurations.
 
 ## Task design
 
-- Generates pairs from the integers 1–40 and includes reversed left–right presentations.
-- Presents the pair on screen with a central fixation line.
-- Participants press **F** when the left number is larger and **J** when the right number is larger.
-- Records the selected key and response time.
-- Displays a reminder when the response time exceeds one second.
+- Samples the integers 1–40 and forms 20 non-overlapping pairs.
+- Presents each pair in its original and reversed left–right configuration.
+- Randomizes trial order.
+- Collects responses using **F** (left number larger) and **J** (right number larger).
+- Records one structured row per trial, including stimulus values, response, correct response, reaction time, and accuracy.
 
 ## Requirements
 
-- Python
-- PsychoPy
-- NumPy
-- pandas
-
-Install the Python dependencies with:
+Python, PsychoPy, NumPy, and pandas.
 
 ```bash
 pip install psychopy numpy pandas
@@ -25,18 +20,12 @@ pip install psychopy numpy pandas
 
 ## Run
 
-From the repository directory:
-
 ```bash
 python numerical_magnitude_task.py
 ```
 
-The task opens a PsychoPy window and waits for the participant to press Enter before starting.
+The task opens a PsychoPy window and waits for Enter before beginning. Trial-level results are saved to `results.csv` in the script directory.
 
-## Data output
+## Scope
 
-The script attempts to export the collected information to `results.csv` in the working directory.
-
-## Current scope and limitations
-
-This is an early experimental implementation rather than a packaged application. The current script does not calculate trial-level accuracy, does not set or record a random seed, and combines the stimulus matrix and response records in a way that should be normalized before the CSV is treated as an analysis-ready trial table. These are appropriate targets for a future code-quality pass.
+This is a focused experimental implementation rather than a packaged application. It demonstrates stimulus generation, counterbalanced left–right presentation, response collection, reaction-time measurement, accuracy scoring, and structured data export. The task does not currently include a formal practice phase, participant metadata dialog, or automated analysis/reporting.
