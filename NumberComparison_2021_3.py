@@ -1,90 +1,134 @@
-"""
-The following script runs a basic experiment software that presents participants with a number choice task.
-Users are presented two numbers on each side of the screen and have to decide which number is bigger.
+"""Two-choice numerical magnitude comparison experiment implemented in PsychoPy.
+
+Participants judge which of two numbers is larger. Each randomly paired number
+set is presented in both left-right configurations. Trial-level responses,
+reaction times, and accuracy are saved to results.csv.
 """
 
-#importing packages
+from pathlib import Path
+
 import numpy as np
-from psychopy import core, visual, event
 import pandas as pd
-
-#defining experimental parameters
-initial_numbers = list(range(1,41))
-np.random.shuffle(initial_numbers)
-initial_numbers = np.array(initial_numbers)
-
-number_sets_or = np.reshape(initial_numbers, (20,2))
-number_sets_fl = np.flip(number_sets_or,1)
-
-number_sets = np.concatenate((number_sets_or,number_sets_fl),0)
-np.random.shuffle(number_sets)
-
-parameters = []
-    
-number_sets_str = [str(x) for x in number_sets]
-number_sets_str = {x.replace('[','').replace(']','') for x in number_sets_str}
-
-parameters.append(number_sets)
+from psychopy import core, event, visual
 
 
-#defining psychopy parameters
-win = visual.Window(fullscr = False, color=(-1,-1,-1), units = 'pix')
-timer = core.Clock()
+def build_trial_pairs(seed=None):
+    """Create 40 trials from the integers 1–40, with each pair reversed once."""
+    rng = np.random.default_rng(seed)
+    numbers = np.arange(1, 41)
+    rng.shuffle(numbers)
 
-#first page
-hello_text = visual.TextStim(win, text = 'Hello!\n\nThis experiment is designed to test your numerical cognition.\nYour task is to evaluate which number is larger.\nIf the number on the left is larger, press F and if the number on the right side is larger, press J.\nYou should response in less than a second!\n\n Press ENTER to start.\n\nGood luck!', color =(1,1,1), height = 25)
-hello_text.draw()
-win.flip()
-
-#starting the experiment
-initiate = event.waitKeys(keyList=('return'),clearEvents = True)
-if 'return' in initiate:
-    pass
-
-#fixation period
-fix_cross_h = visual.Line(win, lineColor = (1,1,1), lineWidth = 20, start = (-20, 0), end =(20, 0))
-fix_cross_h.draw()
-fix_cross_v = visual.Line(win, lineColor = (1,1,1), lineWidth = 20, start = (0, -20), end =(0, 20))
-fix_cross_v.draw()
-win.flip()
-core.wait(2)
-
-#running trials
-for x in number_sets_str:
-    print(x)
-    stimulus = visual.TextStim(win, text = x, height = 30)
-    stimulus.draw()
-    fix_line = visual.Line(win, lineColor = (1,1,1), lineWidth = 2, start = (0, -20), end =(0, 20))
-    fix_line.draw()
-    win.flip()
-    user_response = event.waitKeys(keyList=('f','j'), clearEvents = True, timeStamped = timer)
-    print(user_response)
-    
-    user_key = user_response[0][0]
-    user_rt  = user_response[0][1]
-    
-    parameters.append(user_response)
-    
-    #feedback
-    if user_rt > 1:
-        feedback_text = visual.TextStim(win, text = 'You should respond faster!', color =(1,1,1), height = 25)
-        feedback_text.draw()
-        win.flip()
-        core.wait(1)
-    timer.reset()
-    
-#ending page
-ending_text = visual.TextStim(win, text = 'Thank you for your participation!', color =(1,1,1), height = 25)
-ending_text.draw()
-win.flip()
-core.wait(2)
-
-win.close()
+    original_pairs = numbers.reshape(20, 2)
+    reversed_pairs = original_pairs[:, ::-1]
+    trial_pairs = np.vstack((original_pairs, reversed_pairs))
+    rng.shuffle(trial_pairs)
+    return trial_pairs
 
 
+def run_experiment(output_path=None):
+    """Run the task and save one row per trial."""
+    output_path = Path(output_path) if output_path else Path(__file__).resolve().parent / "results.csv"
+    trial_pairs = build_trial_pairs()
+    records = []
 
-#saving the results
-df = pd.DataFrame(parameters)
-df.to_csv('results.csv')
+    window = visual.Window(fullscr=False, color=(-1, -1, -1), units="pix")
+    clock = core.Clock()
+
+    try:
+        instructions = visual.TextStim(
+            window,
+            text=(
+                "Numerical comparison task\n\n"
+                "Two numbers will appear on the screen. Choose the larger number.\n"
+                "Press F if the left number is larger.\n"
+                "Press J if the right number is larger.\n\n"
+                "Please respond as quickly and accurately as possible.\n\n"
+                "Press ENTER to begin."
+            ),
+            color=(1, 1, 1),
+            height=24,
+            wrapWidth=1000,
+        )
+        instructions.draw()
+        window.flip()
+        event.waitKeys(keyList=["return"], clearEvents=True)
+
+        fixation = visual.TextStim(window, text="+", color=(1, 1, 1), height=36)
+        fixation.draw()
+        window.flip()
+        core.wait(2.0)
+
+        for trial_number, (left_number, right_number) in enumerate(trial_pairs, start=1):
+            pair_text = visual.TextStim(
+                window,
+                text=f"{left_number}                         {right_number}",
+                color=(1, 1, 1),
+                height=42,
+            )
+            divider = visual.Line(
+                window,
+                lineColor=(1, 1, 1),
+                lineWidth=2,
+                start=(0, -35),
+                end=(0, 35),
+            )
+
+            pair_text.draw()
+            divider.draw()
+            clock.reset()
+            window.flip()
+
+            response = event.waitKeys(
+                keyList=["f", "j"],
+                timeStamped=clock,
+                clearEvents=True,
+            )
+            response_key, response_time = response[0]
+
+            correct_key = "f" if left_number > right_number else "j"
+            accuracy = int(response_key == correct_key)
+
+            records.append(
+                {
+                    "trial": trial_number,
+                    "left_number": int(left_number),
+                    "right_number": int(right_number),
+                    "response_key": response_key,
+                    "correct_key": correct_key,
+                    "response_time_sec": float(response_time),
+                    "accuracy": accuracy,
+                }
+            )
+
+            if response_time > 1.0:
+                feedback = visual.TextStim(
+                    window,
+                    text="Please try to respond faster.",
+                    color=(1, 1, 1),
+                    height=24,
+                )
+                feedback.draw()
+                window.flip()
+                core.wait(1.0)
+
+        ending = visual.TextStim(
+            window,
+            text="Thank you for your participation!",
+            color=(1, 1, 1),
+            height=26,
+        )
+        ending.draw()
+        window.flip()
+        core.wait(2.0)
+
+    finally:
+        window.close()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    results = pd.DataFrame.from_records(records)
+    results.to_csv(output_path, index=False)
+    return results
 
 
+if __name__ == "__main__":
+    run_experiment()
