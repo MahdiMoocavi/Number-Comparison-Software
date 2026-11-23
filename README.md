@@ -28,7 +28,7 @@ pip install psychopy numpy pandas
 From the repository directory:
 
 ```bash
-python NumberComparison_2021_3.py
+python numerical_magnitude_task.py
 ```
 
 The task opens a PsychoPy window and waits for the participant to press Enter before starting.
